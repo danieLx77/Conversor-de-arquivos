@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import filedialog
 import os
+from core.converter import FileConverter
 
 class App(ctk.CTk):
     def __init__(self):
@@ -22,7 +23,7 @@ class App(ctk.CTk):
         self.import_button.grid(row=1, column=0, padx=20, pady=10)
 
         
-        self.file_label = ctk.CTkLabel(self, text="Nenhum arquivo selecionado", text_color="gray")
+        self.file_label = ctk.CTkLabel(self, text="Nenhum arquivo selecionado", text_color="gray", wraplength = 500)
         self.file_label.grid(row=2, column=0, padx=20, pady=5)
 
         self.format_label = ctk.CTkLabel(self, text="Converter para:")
@@ -50,4 +51,15 @@ class App(ctk.CTk):
             return
             
         target_format = self.format_menu.get()
-        print(f"Iniciando conversão de {self.current_file_path} para {target_format}")
+
+        if target_format == "Binário" and self.current_file_path.endswith('.txt'):
+            self.file_label.configure(text="Convertendo...", text_color="yellow")
+            
+            sucesso, resultado = FileConverter.text_to_binary(self.current_file_path)
+
+            if sucesso:
+                self.file_label.configure(text=f"✅ Sucesso! Salvo em: {resultado}", text_color="green")
+            else:
+                self.file_label.configure(text=f"❌ Erro: {resultado}", text_color="red")
+        else:
+            self.file_label.configure(text="Por enquanto, só converte .txt para Binário!", text_color="orange")
