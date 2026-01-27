@@ -1,6 +1,10 @@
 import os
+import csv
+import json
 
 class FileConverter:
+
+    #.txt para binário
     @staticmethod
     def text_to_binary(input_path):
         """
@@ -25,3 +29,30 @@ class FileConverter:
 
         except Exception as e:
             return False, str(e) 
+    
+
+    #.csv para JSON
+    @staticmethod
+    def csv_to_json(input_path):
+        """
+        Lê um arquivo CSV (tabela) e converte para JSON (formato de dados da web).
+        """
+        try:
+            folder = os.path.dirname(input_path)
+            base_name = os.path.basename(input_path).split('.')[0]
+            output_path = os.path.join(folder, f"{base_name}_convertido.json")
+
+            data = [] 
+
+            with open(input_path, 'r', encoding='utf-8') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                for row in csv_reader:
+                    data.append(row)
+
+            with open(output_path, 'w', encoding='utf-8') as json_file:
+                json_file.write(json.dumps(data, indent=4, ensure_ascii=False))
+
+            return True, output_path
+
+        except Exception as e:
+            return False, str(e)

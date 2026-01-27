@@ -51,15 +51,24 @@ class App(ctk.CTk):
             return
             
         target_format = self.format_menu.get()
+        extension = self.current_file_path.split('.')[-1].lower()
 
-        if target_format == "Binário" and self.current_file_path.endswith('.txt'):
-            self.file_label.configure(text="Convertendo...", text_color="yellow")
-            
+        sucesso = False
+        resultado = "Formato não suportado ainda."
+
+        if target_format == "Binário" and extension == "txt":
+            self.file_label.configure(text="Convertendo TXT para Binário...", text_color="yellow")
             sucesso, resultado = FileConverter.text_to_binary(self.current_file_path)
 
-            if sucesso:
-                self.file_label.configure(text=f"✅ Sucesso! Salvo em: {resultado}", text_color="green")
-            else:
-                self.file_label.configure(text=f"❌ Erro: {resultado}", text_color="red")
+        elif target_format == "JSON" and extension == "csv":
+            self.file_label.configure(text="Convertendo CSV para JSON...", text_color="yellow")
+            sucesso, resultado = FileConverter.csv_to_json(self.current_file_path)
+            
         else:
-            self.file_label.configure(text="Por enquanto, só converte .txt para Binário!", text_color="orange")
+            self.file_label.configure(text=f"Erro: Não convertemos .{extension} para {target_format}", text_color="orange")
+            return
+
+        if sucesso:
+            self.file_label.configure(text=f"✅ Sucesso! Salvo em: {resultado}", text_color="green")
+        else:
+            self.file_label.configure(text=f"❌ Erro: {resultado}", text_color="red")
