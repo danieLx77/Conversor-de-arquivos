@@ -56,6 +56,8 @@ class App(ctk.CTk):
         sucesso = False
         resultado = "Formato não suportado ainda."
 
+        image_extensions = ['jpg', 'jpeg', 'png']
+
         if target_format == "Binário" and extension == "txt":
             self.file_label.configure(text="Convertendo TXT para Binário...", text_color="yellow")
             sucesso, resultado = FileConverter.text_to_binary(self.current_file_path)
@@ -63,6 +65,10 @@ class App(ctk.CTk):
         elif target_format == "JSON" and extension == "csv":
             self.file_label.configure(text="Convertendo CSV para JSON...", text_color="yellow")
             sucesso, resultado = FileConverter.csv_to_json(self.current_file_path)
+
+        elif target_format == "PDF" and extension in image_extensions:
+            self.file_label.configure(text="Gerando PDF da imagem...", text_color="yellow")
+            sucesso, resultado = FileConverter.image_to_pdf(self.current_file_path)
             
         else:
             self.file_label.configure(text=f"Erro: Não convertemos .{extension} para {target_format}", text_color="orange")

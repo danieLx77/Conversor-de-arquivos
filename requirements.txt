@@ -1,1 +1,2 @@
 customtkinter
+img2pdf

@@ -1,7 +1,7 @@
 import os
 import csv
 import json
-
+import img2pdf
 class FileConverter:
 
     #.txt para binário
@@ -56,3 +56,27 @@ class FileConverter:
 
         except Exception as e:
             return False, str(e)
+        
+        
+        
+    #.imagem para PDF
+    @staticmethod
+    def image_to_pdf(input_path):
+            """
+            Converte uma imagem (JPG, PNG) para PDF sem perda de qualidade (lossless).
+            O PDF terá exatamente o tamanho da imagem original.
+            """
+            try:
+                folder = os.path.dirname(input_path)
+                base_name = os.path.basename(input_path).split('.')[0]
+                output_path = os.path.join(folder, f"{base_name}.pdf")
+
+                pdf_bytes = img2pdf.convert(input_path)
+
+                with open(output_path, "wb") as file: 
+                    file.write(pdf_bytes)
+
+                return True, output_path
+
+            except Exception as e:
+                return False, str(e)
