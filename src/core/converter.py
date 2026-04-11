@@ -67,9 +67,9 @@ class FileConverter:
     @staticmethod
     def pdf_to_images(input_path, output_format="png", dpi=300):
         """
-        Converte PDF em imagens usando PyMuPDF.
-        Vantagem: Não precisa de Poppler instalado no sistema.
+        Converte PDF em imagens usando PyMuPDF com otimização de memória.
         """
+        doc = None
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -81,10 +81,10 @@ class FileConverter:
             doc = fitz.open(input_path)
             generated_files = []
 
+            zoom = dpi / 72
+            mat = fitz.Matrix(zoom, zoom)
+
             for i, page in enumerate(doc):
-                zoom = dpi / 72
-                mat = fitz.Matrix(zoom, zoom)
-                
                 pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
                 
                 page_num = i + 1
@@ -93,9 +93,14 @@ class FileConverter:
                 
                 pix.save(image_path)
                 generated_files.append(image_path)
+                
+                pix = None 
 
-            doc.close()
-            return True, f"Salvo em: {output_folder} ({len(generated_files)} imagens)"
+            return True, f"Sucesso! {len(generated_files)} páginas salvas em: {output_folder}"
 
         except Exception as e:
             return False, f"Erro na conversão: {str(e)}"
+        
+        finally:
+            if doc:
+                doc.close()
