@@ -3,7 +3,6 @@ import csv
 import json
 import img2pdf
 import pdf2image
-import platform 
 
 class FileConverter:
 
@@ -83,13 +82,10 @@ class FileConverter:
             return False, str(e)
             
 
-    # --- PDF PARA IMAGENS (PNG/JPEG) ---
     @staticmethod
     def pdf_to_images(input_path, output_format="png", dpi=300):
         """
-        Converte um PDF em imagens (PNG ou JPEG), uma imagem por página.
-        Cria uma pasta com o nome do PDF para salvar as imagens.
-        No Windows, aponta para o caminho padrão do Poppler via Chocolatey.
+        Converte PDF em imagens usando o Poppler configurado no sistema.
         """
         try:
             folder = os.path.dirname(input_path)
@@ -99,15 +95,10 @@ class FileConverter:
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
-            poppler_path = None
-            if platform.system() == "Windows":
-                poppler_path = r"C:\ProgramData\chocolatey\lib\poppler\tools\bin"
-
             images = pdf2image.convert_from_path(
                 input_path, 
                 dpi=dpi, 
-                fmt=output_format,
-                poppler_path=poppler_path 
+                fmt=output_format
             )
 
             generated_files = []
