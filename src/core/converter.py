@@ -2,6 +2,7 @@ import os
 import csv
 import json
 import img2pdf
+import pdf2image
 class FileConverter:
 
     #.txt para binário
@@ -80,3 +81,43 @@ class FileConverter:
 
             except Exception as e:
                 return False, str(e)
+            
+
+
+    @staticmethod
+    def pdf_to_images(input_path, output_format="png", dpi=300):
+        """
+        Converte um PDF em imagens (PNG ou JPEG), uma imagem por página.
+        Cria uma pasta com o nome do PDF para salvar as imagens.
+        A qualidade é controlada pelo DPI (padrão 300 para alta qualidade).
+        """
+        try:
+            folder = os.path.dirname(input_path)
+            base_name = os.path.basename(input_path).split('.')[0]
+            
+            # 1. Cria uma pasta específica para as imagens (ex: meu_documento_imagens)
+            output_folder = os.path.join(folder, f"{base_name}_imagens")
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            # 2. Converte o PDF em uma lista de imagens Pillow
+            # fmt define o formato de saída ('png' ou 'jpeg')
+            images = pdf2image.convert_from_path(input_path, dpi=dpi, fmt=output_format)
+
+            generated_files = []
+            # 3. Salva cada imagem na pasta criada
+            for i, image in enumerate(images):
+                page_num = i + 1
+                # Define o nome da imagem (ex: meu_documento_pagina_1.png)
+                image_name = f"{base_name}_pagina_{page_num}.{output_format}"
+                image_path = os.path.join(output_folder, image_name)
+                
+                # Salva a imagem usando o Pillow (que o pdf2image usa internamente)
+                image.save(image_path, output_format.upper())
+                generated_files.append(image_path)
+
+            # Retorna Sucesso e a pasta onde as imagens foram salvas
+            return True, f"Imagens salvas na pasta: {output_folder} ({len(generated_files)} páginas)"
+
+        except Exception as e:
+            return False, f"Erro na conversão: {str(e)}"
