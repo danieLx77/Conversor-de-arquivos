@@ -6,12 +6,13 @@ import fitz
 import requests
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 class FileConverter:
 
-    # --- CONFIGURAÇÃO DE API ---
-    OCR_API_KEY = os.getenv("OCR_SPACE_KEY", "helloworld") 
+    # --- CONFIGURAÇÃO DE API (OCR.SPACE) ---
+    OCR_API_KEY = os.getenv("OCR_SPACE_KEY", "helloworld")
     OCR_URL = "https://api.ocr.space/parse/image"
 
     # --- TXT PARA BINÁRIO ---
@@ -71,7 +72,7 @@ class FileConverter:
         except Exception as e:
             return False, str(e)
 
-    # --- PDF PARA IMAGENS ---
+    # --- PDF PARA IMAGENS (PNG/JPEG) ---
     @staticmethod
     def pdf_to_images(input_path, output_format="png", dpi=300):
         doc = None
@@ -97,7 +98,7 @@ class FileConverter:
         finally:
             if doc: doc.close()
 
-    # --- PDF PARA SVG ---
+    # --- PDF PARA SVG (VETORIAL) ---
     @staticmethod
     def pdf_to_svg(input_path):
         doc = None
@@ -144,19 +145,35 @@ class FileConverter:
         finally:
             if doc: doc.close()
 
-    # --- OCR VIA API (NUVEM) ---
+    # --- PDF PARA MARKDOWN ---
+    @staticmethod
+    def pdf_to_markdown(input_path):
+        doc = None
+        try:
+            folder = os.path.dirname(input_path)
+            base_name = os.path.basename(input_path).split('.')[0]
+            output_path = os.path.join(folder, f"{base_name}.md")
+
+            doc = fitz.open(input_path)
+            content = f"# {base_name}\n\n"
+            for i, page in enumerate(doc):
+                content += f"## Página {i+1}\n\n{page.get_text('text')}\n\n---\n\n"
+
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(content)
+
+            return True, f"Markdown salvo em: {output_path}"
+        except Exception as e:
+            return False, str(e)
+        finally:
+            if doc: doc.close()
+
+    # --- OCR VIA API ---
     @staticmethod
     def ocr_via_api(input_path):
-        """
-        Extrai texto de imagem usando OCR.space API (Requer Internet).
-        """
         try:
             with open(input_path, 'rb') as f:
-                payload = {
-                    'apikey': FileConverter.OCR_API_KEY,
-                    'language': 'por',
-                    'isOverlayRequired': False,
-                }
+                payload = {'apikey': FileConverter.OCR_API_KEY, 'language': 'por'}
                 files = {'file': f}
                 response = requests.post(FileConverter.OCR_URL, data=payload, files=files)
                 result = response.json()
@@ -169,8 +186,7 @@ class FileConverter:
                 
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(parsed_text)
-                return True, f"Texto salvo em: {output_path}"
-            else:
-                return False, f"API Erro: {result.get('ErrorMessage')}"
+                return True, f"Texto extraído: {output_path}"
+            return False, f"Erro API: {result.get('ErrorMessage')}"
         except Exception as e:
-            return False, f"Conexão falhou: {str(e)}"
+            return False, f"Falha: {str(e)}"
