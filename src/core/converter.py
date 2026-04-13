@@ -3,15 +3,20 @@ import csv
 import json
 import img2pdf
 import fitz  
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class FileConverter:
+
+    # --- CONFIGURAÇÃO DE API ---
+    OCR_API_KEY = os.getenv("OCR_SPACE_KEY", "helloworld") 
+    OCR_URL = "https://api.ocr.space/parse/image"
 
     # --- TXT PARA BINÁRIO ---
     @staticmethod
     def text_to_binary(input_path):
-        """
-        Converte cada caractere de um arquivo .txt em sua representação binária de 8 bits.
-        """
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -32,9 +37,6 @@ class FileConverter:
     # --- CSV PARA JSON ---
     @staticmethod
     def csv_to_json(input_path):
-        """
-        Converte uma tabela CSV em um arquivo JSON estruturado.
-        """
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -56,9 +58,6 @@ class FileConverter:
     # --- IMAGEM PARA PDF ---
     @staticmethod
     def image_to_pdf(input_path):
-        """
-        Converte imagens (PNG/JPG) para um arquivo PDF sem perda de qualidade.
-        """
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -72,124 +71,106 @@ class FileConverter:
         except Exception as e:
             return False, str(e)
 
-    # --- PDF PARA IMAGENS (PNG/JPEG) ---
+    # --- PDF PARA IMAGENS ---
     @staticmethod
     def pdf_to_images(input_path, output_format="png", dpi=300):
-        """
-        Converte páginas inteiras de um PDF em imagens rasterizadas.
-        """
         doc = None
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
-            
             output_folder = os.path.join(folder, f"{base_name}_imagens")
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
+            if not os.path.exists(output_folder): os.makedirs(output_folder)
 
             doc = fitz.open(input_path)
-            generated_files = []
-
             zoom = dpi / 72
             mat = fitz.Matrix(zoom, zoom)
 
             for i, page in enumerate(doc):
                 pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
-                
-                page_num = i + 1
-                image_name = f"{base_name}_pagina_{page_num}.{output_format}"
-                image_path = os.path.join(output_folder, image_name)
-                
+                image_path = os.path.join(output_folder, f"{base_name}_p{i+1}.{output_format}")
                 pix.save(image_path)
-                generated_files.append(image_path)
-                
-                pix = None # Garante liberação de RAM por página
+                pix = None 
 
-            return True, f"Pasta: {output_folder}"
-
+            return True, f"Imagens em: {output_folder}"
         except Exception as e:
-            return False, f"Erro na conversão: {str(e)}"
+            return False, str(e)
         finally:
-            if doc:
-                doc.close()
+            if doc: doc.close()
 
-    # --- PDF PARA SVG (VETORIAL) ---
+    # --- PDF PARA SVG ---
     @staticmethod
     def pdf_to_svg(input_path):
-        """
-        Converte páginas de PDF para vetores SVG (zoom infinito sem pixelar).
-        """
         doc = None
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
-            
             output_folder = os.path.join(folder, f"{base_name}_svg")
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
+            if not os.path.exists(output_folder): os.makedirs(output_folder)
 
             doc = fitz.open(input_path)
-            generated_files = []
-
             for i, page in enumerate(doc):
-                page_num = i + 1
-                svg_name = f"{base_name}_pagina_{page_num}.svg"
-                svg_path = os.path.join(output_folder, svg_name)
-                
-                svg_content = page.get_svg_image()
-                
+                svg_path = os.path.join(output_folder, f"{base_name}_p{i+1}.svg")
                 with open(svg_path, "w", encoding="utf-8") as f:
-                    f.write(svg_content)
-                
-                generated_files.append(svg_path)
+                    f.write(page.get_svg_image())
 
-            return True, f"Pasta: {output_folder}"
-
+            return True, f"SVGs em: {output_folder}"
         except Exception as e:
-            return False, f"Erro no SVG: {str(e)}"
+            return False, str(e)
         finally:
-            if doc:
-                doc.close()
+            if doc: doc.close()
 
-    # --- EXTRAIR IMAGENS EMBUTIDAS NO PDF ---
+    # --- EXTRAIR IMAGENS DE PDF ---
     @staticmethod
     def extract_images_from_pdf(input_path):
-        """
-        Busca e salva apenas as fotos/objetos de imagem originais dentro do PDF.
-        """
         doc = None
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
-            
             output_folder = os.path.join(folder, f"{base_name}_extraidas")
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
+            if not os.path.exists(output_folder): os.makedirs(output_folder)
 
             doc = fitz.open(input_path)
-            image_count = 0
-
+            count = 0
             for i in range(len(doc)):
-                image_list = doc.get_page_images(i)
-                
-                for img_index, img in enumerate(image_list):
+                for img_index, img in enumerate(doc.get_page_images(i)):
                     xref = img[0]
                     base_image = doc.extract_image(xref)
-                    image_bytes = base_image["image"]
-                    image_ext = base_image["ext"]
-                    
-                    image_name = f"foto_p{i+1}_{img_index+1}.{image_ext}"
-                    image_path = os.path.join(output_folder, image_name)
-                    
-                    with open(image_path, "wb") as f:
-                        f.write(image_bytes)
-                    
-                    image_count += 1
-
-            return True, f"{image_count} imagens em: {output_folder}"
-
+                    image_path = os.path.join(output_folder, f"img_p{i+1}_{img_index+1}.{base_image['ext']}")
+                    with open(image_path, "wb") as f: f.write(base_image["image"])
+                    count += 1
+            return True, f"{count} fotos em: {output_folder}"
         except Exception as e:
-            return False, f"Erro na extração: {str(e)}"
+            return False, str(e)
         finally:
-            if doc:
-                doc.close()
+            if doc: doc.close()
+
+    # --- OCR VIA API (NUVEM) ---
+    @staticmethod
+    def ocr_via_api(input_path):
+        """
+        Extrai texto de imagem usando OCR.space API (Requer Internet).
+        """
+        try:
+            with open(input_path, 'rb') as f:
+                payload = {
+                    'apikey': FileConverter.OCR_API_KEY,
+                    'language': 'por',
+                    'isOverlayRequired': False,
+                }
+                files = {'file': f}
+                response = requests.post(FileConverter.OCR_URL, data=payload, files=files)
+                result = response.json()
+
+            if result.get('OCRExitCode') == 1:
+                parsed_text = result['ParsedResults'][0]['ParsedText']
+                folder = os.path.dirname(input_path)
+                base_name = os.path.basename(input_path).split('.')[0]
+                output_path = os.path.join(folder, f"{base_name}_ocr.txt")
+                
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write(parsed_text)
+                return True, f"Texto salvo em: {output_path}"
+            else:
+                return False, f"API Erro: {result.get('ErrorMessage')}"
+        except Exception as e:
+            return False, f"Conexão falhou: {str(e)}"

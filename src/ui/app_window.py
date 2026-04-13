@@ -31,8 +31,8 @@ class App(ctk.CTk):
 
         # Menu de Opções
         self.format_menu = ctk.CTkOptionMenu(self, values=[
-            "PNG", "JPEG", "SVG", "Extrair Imagens", "PDF", 
-            "JSON", "CSV", "Binário"
+            "OCR na Nuvem (API)", "PNG", "JPEG", "SVG", 
+            "Extrair Imagens", "PDF", "JSON", "CSV", "Binário"
         ])
         self.format_menu.grid(row=4, column=0, padx=20, pady=10)
 
@@ -60,8 +60,8 @@ class App(ctk.CTk):
         extension = self.current_file_path.split('.')[-1].lower()
 
         sucesso = False
-        resultado = "Formato não suportado."
-        image_extensions = ['jpg', 'jpeg', 'png']
+        resultado = "Combinação de formato não suportada."
+        image_extensions = ['jpg', 'jpeg', 'png', 'webp']
 
         # 2. Lógica de Roteamento de Conversão
         
@@ -75,12 +75,19 @@ class App(ctk.CTk):
             self.file_label.configure(text="Convertendo CSV para JSON...", text_color="yellow")
             sucesso, resultado = FileConverter.csv_to_json(self.current_file_path)
 
-        # --- Imagens para PDF ---
-        elif extension in image_extensions and target_format == "PDF":
-            self.file_label.configure(text="Gerando PDF da imagem...", text_color="yellow")
-            sucesso, resultado = FileConverter.image_to_pdf(self.current_file_path)
+        # --- Operações com IMAGENS ---
+        elif extension in image_extensions:
+            if target_format == "PDF":
+                self.file_label.configure(text="Gerando PDF da imagem...", text_color="yellow")
+                sucesso, resultado = FileConverter.image_to_pdf(self.current_file_path)
+            elif target_format == "OCR na Nuvem (API)":
+                self.file_label.configure(text="Executando OCR na imagem...", text_color="yellow")
+                sucesso, resultado = FileConverter.ocr_via_api(self.current_file_path)
+            else:
+                self.file_label.configure(text=f"Erro: Imagem não suporta {target_format}", text_color="orange")
+                return
 
-        # --- Operações com PDF (PNG, JPEG, SVG, Extrair Imagens) ---
+        # --- Operações com PDF ---
         elif extension == "pdf":
             if target_format in ["PNG", "JPEG"]:
                 self.file_label.configure(text=f"Convertendo páginas para {target_format}...", text_color="yellow")
@@ -93,9 +100,13 @@ class App(ctk.CTk):
             elif target_format == "Extrair Imagens":
                 self.file_label.configure(text="Extraindo fotos do PDF...", text_color="yellow")
                 sucesso, resultado = FileConverter.extract_images_from_pdf(self.current_file_path)
+
+            elif target_format == "OCR na Nuvem (API)":
+                self.file_label.configure(text="Executando OCR no PDF (Página 1)...", text_color="yellow")
+                sucesso, resultado = FileConverter.ocr_via_api(self.current_file_path)
             
             else:
-                self.file_label.configure(text=f"Erro: PDF não suporta conversão para {target_format}", text_color="orange")
+                self.file_label.configure(text=f"Erro: PDF não suporta {target_format}", text_color="orange")
                 return
 
         # --- Caso não encontre combinação válida ---
