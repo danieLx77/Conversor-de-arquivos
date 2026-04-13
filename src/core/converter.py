@@ -10,7 +10,7 @@ class FileConverter:
     @staticmethod
     def text_to_binary(input_path):
         """
-        Converte texto simples para representação binária (0s e 1s).
+        Converte cada caractere de um arquivo .txt em sua representação binária de 8 bits.
         """
         try:
             folder = os.path.dirname(input_path)
@@ -33,7 +33,7 @@ class FileConverter:
     @staticmethod
     def csv_to_json(input_path):
         """
-        Converte tabelas CSV em objetos estruturados JSON.
+        Converte uma tabela CSV em um arquivo JSON estruturado.
         """
         try:
             folder = os.path.dirname(input_path)
@@ -57,7 +57,7 @@ class FileConverter:
     @staticmethod
     def image_to_pdf(input_path):
         """
-        Converte imagens JPG/PNG para PDF (Lossless).
+        Converte imagens (PNG/JPG) para um arquivo PDF sem perda de qualidade.
         """
         try:
             folder = os.path.dirname(input_path)
@@ -76,7 +76,7 @@ class FileConverter:
     @staticmethod
     def pdf_to_images(input_path, output_format="png", dpi=300):
         """
-        Converte PDF em imagens usando PyMuPDF com otimização de memória.
+        Converte páginas inteiras de um PDF em imagens rasterizadas.
         """
         doc = None
         try:
@@ -103,9 +103,9 @@ class FileConverter:
                 pix.save(image_path)
                 generated_files.append(image_path)
                 
-                pix = None # Libera memória da página processada
+                pix = None # Garante liberação de RAM por página
 
-            return True, f"Salvo em: {output_folder}"
+            return True, f"Pasta: {output_folder}"
 
         except Exception as e:
             return False, f"Erro na conversão: {str(e)}"
@@ -113,11 +113,11 @@ class FileConverter:
             if doc:
                 doc.close()
 
-    # --- PDF PARA SVG ---
+    # --- PDF PARA SVG (VETORIAL) ---
     @staticmethod
     def pdf_to_svg(input_path):
         """
-        Converte cada página de um PDF em um arquivo SVG vetorial.
+        Converte páginas de PDF para vetores SVG (zoom infinito sem pixelar).
         """
         doc = None
         try:
@@ -143,10 +143,53 @@ class FileConverter:
                 
                 generated_files.append(svg_path)
 
-            return True, f"Salvo em: {output_folder}"
+            return True, f"Pasta: {output_folder}"
 
         except Exception as e:
-            return False, f"Erro na conversão para SVG: {str(e)}"
+            return False, f"Erro no SVG: {str(e)}"
+        finally:
+            if doc:
+                doc.close()
+
+    # --- EXTRAIR IMAGENS EMBUTIDAS NO PDF ---
+    @staticmethod
+    def extract_images_from_pdf(input_path):
+        """
+        Busca e salva apenas as fotos/objetos de imagem originais dentro do PDF.
+        """
+        doc = None
+        try:
+            folder = os.path.dirname(input_path)
+            base_name = os.path.basename(input_path).split('.')[0]
+            
+            output_folder = os.path.join(folder, f"{base_name}_extraidas")
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            doc = fitz.open(input_path)
+            image_count = 0
+
+            for i in range(len(doc)):
+                image_list = doc.get_page_images(i)
+                
+                for img_index, img in enumerate(image_list):
+                    xref = img[0]
+                    base_image = doc.extract_image(xref)
+                    image_bytes = base_image["image"]
+                    image_ext = base_image["ext"]
+                    
+                    image_name = f"foto_p{i+1}_{img_index+1}.{image_ext}"
+                    image_path = os.path.join(output_folder, image_name)
+                    
+                    with open(image_path, "wb") as f:
+                        f.write(image_bytes)
+                    
+                    image_count += 1
+
+            return True, f"{image_count} imagens em: {output_folder}"
+
+        except Exception as e:
+            return False, f"Erro na extração: {str(e)}"
         finally:
             if doc:
                 doc.close()

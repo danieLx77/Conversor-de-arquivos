@@ -7,8 +7,11 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        # Configurações da Janela
         self.title("Conversor Universal de Arquivos")
-        self.geometry("600x480") 
+        self.geometry("600x480")
+        
+        # Grid System
         self.grid_columnconfigure(0, weight=1)
 
         # Componentes da Interface
@@ -26,9 +29,9 @@ class App(ctk.CTk):
         self.format_label = ctk.CTkLabel(self, text="Converter para:")
         self.format_label.grid(row=3, column=0, padx=20, pady=(20, 0))
 
-        # Menu de Opções 
+        # Menu de Opções
         self.format_menu = ctk.CTkOptionMenu(self, values=[
-            "PNG", "JPEG", "SVG", "PDF", 
+            "PNG", "JPEG", "SVG", "Extrair Imagens", "PDF", 
             "JSON", "CSV", "Binário"
         ])
         self.format_menu.grid(row=4, column=0, padx=20, pady=10)
@@ -62,36 +65,37 @@ class App(ctk.CTk):
 
         # 2. Lógica de Roteamento de Conversão
         
-        # --- TXT ---
+        # --- TXT para Binário ---
         if extension == "txt" and target_format == "Binário":
             self.file_label.configure(text="Convertendo TXT para Binário...", text_color="yellow")
             sucesso, resultado = FileConverter.text_to_binary(self.current_file_path)
 
-        # --- CSV ---
+        # --- CSV para JSON ---
         elif extension == "csv" and target_format == "JSON":
             self.file_label.configure(text="Convertendo CSV para JSON...", text_color="yellow")
             sucesso, resultado = FileConverter.csv_to_json(self.current_file_path)
 
-        # --- IMAGENS (PNG, JPG) ---
+        # --- Imagens para PDF ---
         elif extension in image_extensions and target_format == "PDF":
             self.file_label.configure(text="Gerando PDF da imagem...", text_color="yellow")
             sucesso, resultado = FileConverter.image_to_pdf(self.current_file_path)
 
-        # --- PDF ---
+        # --- Operações com PDF (PNG, JPEG, SVG, Extrair Imagens) ---
         elif extension == "pdf":
-            # PDF para Imagens Raster (PNG/JPEG)
             if target_format in ["PNG", "JPEG"]:
-                format_lower = target_format.lower()
-                self.file_label.configure(text=f"Convertendo PDF para {target_format}...", text_color="yellow")
-                sucesso, resultado = FileConverter.pdf_to_images(self.current_file_path, output_format=format_lower)
+                self.file_label.configure(text=f"Convertendo páginas para {target_format}...", text_color="yellow")
+                sucesso, resultado = FileConverter.pdf_to_images(self.current_file_path, output_format=target_format.lower())
             
-            # PDF para SVG
             elif target_format == "SVG":
-                self.file_label.configure(text="Convertendo PDF para SVG (Vetorial)...", text_color="yellow")
+                self.file_label.configure(text="Convertendo PDF para SVG...", text_color="yellow")
                 sucesso, resultado = FileConverter.pdf_to_svg(self.current_file_path)
             
+            elif target_format == "Extrair Imagens":
+                self.file_label.configure(text="Extraindo fotos do PDF...", text_color="yellow")
+                sucesso, resultado = FileConverter.extract_images_from_pdf(self.current_file_path)
+            
             else:
-                self.file_label.configure(text=f"Erro: Não convertemos PDF para {target_format}", text_color="orange")
+                self.file_label.configure(text=f"Erro: PDF não suporta conversão para {target_format}", text_color="orange")
                 return
 
         # --- Caso não encontre combinação válida ---
@@ -101,6 +105,6 @@ class App(ctk.CTk):
 
         # 3. Exibição do Resultado Final
         if sucesso:
-            self.file_label.configure(text=f"✅ Sucesso!\n{resultado}", text_color="green")
+            self.file_label.configure(text=f"✅ {resultado}", text_color="green")
         else:
             self.file_label.configure(text=f"❌ Erro: {resultado}", text_color="red")
