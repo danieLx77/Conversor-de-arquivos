@@ -2,13 +2,16 @@ import os
 import csv
 import json
 import img2pdf
-import fitz  # Import da PyMuPDF (instale via pip install pymupdf)
+import fitz  
 
 class FileConverter:
 
     # --- TXT PARA BINÁRIO ---
     @staticmethod
     def text_to_binary(input_path):
+        """
+        Converte texto simples para representação binária (0s e 1s).
+        """
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -29,6 +32,9 @@ class FileConverter:
     # --- CSV PARA JSON ---
     @staticmethod
     def csv_to_json(input_path):
+        """
+        Converte tabelas CSV em objetos estruturados JSON.
+        """
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -50,6 +56,9 @@ class FileConverter:
     # --- IMAGEM PARA PDF ---
     @staticmethod
     def image_to_pdf(input_path):
+        """
+        Converte imagens JPG/PNG para PDF (Lossless).
+        """
         try:
             folder = os.path.dirname(input_path)
             base_name = os.path.basename(input_path).split('.')[0]
@@ -94,13 +103,50 @@ class FileConverter:
                 pix.save(image_path)
                 generated_files.append(image_path)
                 
-                pix = None 
+                pix = None # Libera memória da página processada
 
-            return True, f"Sucesso! {len(generated_files)} páginas salvas em: {output_folder}"
+            return True, f"Salvo em: {output_folder}"
 
         except Exception as e:
             return False, f"Erro na conversão: {str(e)}"
-        
+        finally:
+            if doc:
+                doc.close()
+
+    # --- PDF PARA SVG ---
+    @staticmethod
+    def pdf_to_svg(input_path):
+        """
+        Converte cada página de um PDF em um arquivo SVG vetorial.
+        """
+        doc = None
+        try:
+            folder = os.path.dirname(input_path)
+            base_name = os.path.basename(input_path).split('.')[0]
+            
+            output_folder = os.path.join(folder, f"{base_name}_svg")
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            doc = fitz.open(input_path)
+            generated_files = []
+
+            for i, page in enumerate(doc):
+                page_num = i + 1
+                svg_name = f"{base_name}_pagina_{page_num}.svg"
+                svg_path = os.path.join(output_folder, svg_name)
+                
+                svg_content = page.get_svg_image()
+                
+                with open(svg_path, "w", encoding="utf-8") as f:
+                    f.write(svg_content)
+                
+                generated_files.append(svg_path)
+
+            return True, f"Salvo em: {output_folder}"
+
+        except Exception as e:
+            return False, f"Erro na conversão para SVG: {str(e)}"
         finally:
             if doc:
                 doc.close()

@@ -7,11 +7,8 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Configurações da Janela
         self.title("Conversor Universal de Arquivos")
-        self.geometry("600x450") # Aumentei um pouco a altura para acomodar as labels
-        
-        # Grid System
+        self.geometry("600x480") 
         self.grid_columnconfigure(0, weight=1)
 
         # Componentes da Interface
@@ -22,15 +19,18 @@ class App(ctk.CTk):
         self.import_button = ctk.CTkButton(self, text="📁 Importar Arquivo", command=self.import_file)
         self.import_button.grid(row=1, column=0, padx=20, pady=10)
 
-        # Label de status do arquivo (com wraplength para não quebrar o layout no Linux)
+        # Label de status do arquivo
         self.file_label = ctk.CTkLabel(self, text="Nenhum arquivo selecionado", text_color="gray", wraplength=500)
         self.file_label.grid(row=2, column=0, padx=20, pady=5)
 
         self.format_label = ctk.CTkLabel(self, text="Converter para:")
         self.format_label.grid(row=3, column=0, padx=20, pady=(20, 0))
 
-        # Menu de Opções
-        self.format_menu = ctk.CTkOptionMenu(self, values=["PDF", "CSV", "JSON", "TXT", "Binário", "PNG", "JPEG"])
+        # Menu de Opções 
+        self.format_menu = ctk.CTkOptionMenu(self, values=[
+            "PNG", "JPEG", "SVG", "PDF", 
+            "JSON", "CSV", "Binário"
+        ])
         self.format_menu.grid(row=4, column=0, padx=20, pady=10)
 
         # Botão de Converter
@@ -57,46 +57,50 @@ class App(ctk.CTk):
         extension = self.current_file_path.split('.')[-1].lower()
 
         sucesso = False
-        resultado = "Formato não suportado ainda."
+        resultado = "Formato não suportado."
         image_extensions = ['jpg', 'jpeg', 'png']
 
         # 2. Lógica de Roteamento de Conversão
         
-        # Caso A: TXT para Binário
-        if target_format == "Binário" and extension == "txt":
+        # --- TXT ---
+        if extension == "txt" and target_format == "Binário":
             self.file_label.configure(text="Convertendo TXT para Binário...", text_color="yellow")
             sucesso, resultado = FileConverter.text_to_binary(self.current_file_path)
 
-        # Caso B: CSV para JSON
-        elif target_format == "JSON" and extension == "csv":
+        # --- CSV ---
+        elif extension == "csv" and target_format == "JSON":
             self.file_label.configure(text="Convertendo CSV para JSON...", text_color="yellow")
             sucesso, resultado = FileConverter.csv_to_json(self.current_file_path)
 
-        # Caso C: Criar PDF (a partir de imagens ou docx)
-        elif target_format == "PDF":
-            if extension in image_extensions:
-                self.file_label.configure(text="Gerando PDF da imagem...", text_color="yellow")
-                sucesso, resultado = FileConverter.image_to_pdf(self.current_file_path)
-            elif extension == "docx":
-                self.file_label.configure(text="Convertendo DOCX para PDF...", text_color="yellow")
-                sucesso, resultado = FileConverter.docx_to_pdf(self.current_file_path)
+        # --- IMAGENS (PNG, JPG) ---
+        elif extension in image_extensions and target_format == "PDF":
+            self.file_label.configure(text="Gerando PDF da imagem...", text_color="yellow")
+            sucesso, resultado = FileConverter.image_to_pdf(self.current_file_path)
+
+        # --- PDF ---
+        elif extension == "pdf":
+            # PDF para Imagens Raster (PNG/JPEG)
+            if target_format in ["PNG", "JPEG"]:
+                format_lower = target_format.lower()
+                self.file_label.configure(text=f"Convertendo PDF para {target_format}...", text_color="yellow")
+                sucesso, resultado = FileConverter.pdf_to_images(self.current_file_path, output_format=format_lower)
+            
+            # PDF para SVG
+            elif target_format == "SVG":
+                self.file_label.configure(text="Convertendo PDF para SVG (Vetorial)...", text_color="yellow")
+                sucesso, resultado = FileConverter.pdf_to_svg(self.current_file_path)
+            
             else:
-                resultado = f"Não é possível converter .{extension} para PDF."
+                self.file_label.configure(text=f"Erro: Não convertemos PDF para {target_format}", text_color="orange")
+                return
 
-        # Caso D: PDF para Imagens (PNG/JPEG)
-        elif extension == "pdf" and target_format in ["PNG", "JPEG"]:
-            format_lower = target_format.lower()
-            self.file_label.configure(text=f"Extraindo páginas do PDF para {target_format}...", text_color="yellow")
-            sucesso, resultado = FileConverter.pdf_to_images(self.current_file_path, output_format=format_lower)
-
-        # Caso E: Formato não suportado
+        # --- Caso não encontre combinação válida ---
         else:
-            self.file_label.configure(text=f"Erro: Conversão .{extension} -> {target_format} não disponível.", text_color="orange")
+            self.file_label.configure(text=f"Erro: A combinação .{extension} -> {target_format} não é válida.", text_color="orange")
             return
 
         # 3. Exibição do Resultado Final
         if sucesso:
-            # Como o 'resultado' pode ser um caminho longo, o wraplength ajudará aqui
             self.file_label.configure(text=f"✅ Sucesso!\n{resultado}", text_color="green")
         else:
             self.file_label.configure(text=f"❌ Erro: {resultado}", text_color="red")
