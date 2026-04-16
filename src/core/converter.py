@@ -4,8 +4,8 @@ import json
 import img2pdf
 import fitz  
 import requests
+import vtracer
 from dotenv import load_dotenv
-
 
 load_dotenv()
 
@@ -72,6 +72,32 @@ class FileConverter:
         except Exception as e:
             return False, str(e)
 
+    # --- IMAGEM PARA SVG (VETORIZAÇÃO REAL) ---
+    @staticmethod
+    def image_to_svg(input_path):
+        """
+        Transforma pixels em vetores matemáticos usando vtracer.
+        Ideal para logos e ilustrações.
+        """
+        try:
+            folder = os.path.dirname(input_path)
+            base_name = os.path.basename(input_path).split('.')[0]
+            output_path = os.path.join(folder, f"{base_name}_vetorizado.svg")
+
+            # Executa a vetorização (tracing)
+            vtracer.convert_image_to_svg(
+                input_path, 
+                output_path,
+                colormode='color', # Preserva as cores da imagem
+                mode='spline',     # Cria curvas suaves (melhor qualidade)
+                filter_speckle=4,  # Remove ruídos pequenos
+                color_precision=6  # Equilíbrio entre qualidade e tamanho do arquivo
+            )
+
+            return True, f"Vetorizado: {output_path}"
+        except Exception as e:
+            return False, f"Erro na vetorização: {str(e)}"
+
     # --- PDF PARA IMAGENS (PNG/JPEG) ---
     @staticmethod
     def pdf_to_images(input_path, output_format="png", dpi=300):
@@ -98,7 +124,7 @@ class FileConverter:
         finally:
             if doc: doc.close()
 
-    # --- PDF PARA SVG (VETORIAL) ---
+    # --- PDF PARA SVG ---
     @staticmethod
     def pdf_to_svg(input_path):
         doc = None
