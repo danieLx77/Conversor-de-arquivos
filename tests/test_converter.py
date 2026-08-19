@@ -39,8 +39,9 @@ def test_text_to_binary(tmp_path):
     src = tmp_path / "exemplo.txt"
     src.write_text("AB", encoding="utf-8")
 
-    sucesso, resultado = FileConverter.text_to_binary(str(src))
+    sucesso, resultado, output_path = FileConverter.text_to_binary(str(src))
     assert sucesso
+    assert output_path == str(tmp_path / "exemplo_convertido.bin")
 
     output = tmp_path / "exemplo_convertido.bin"
     assert str(output) == resultado
@@ -48,20 +49,22 @@ def test_text_to_binary(tmp_path):
 
 
 def test_text_to_binary_inexistente(tmp_path):
-    sucesso, resultado = FileConverter.text_to_binary(str(tmp_path / "nao_existe.txt"))
+    sucesso, resultado, output_path = FileConverter.text_to_binary(str(tmp_path / "nao_existe.txt"))
     assert not sucesso
     assert isinstance(resultado, str)
+    assert output_path is None
 
 
 def test_csv_to_json(tmp_path):
     src = tmp_path / "dados.csv"
     src.write_text("nome,idade\nMaria,30\nJoão,25\n", encoding="utf-8")
 
-    sucesso, resultado = FileConverter.csv_to_json(str(src))
+    sucesso, resultado, output_path = FileConverter.csv_to_json(str(src))
     assert sucesso
 
     output = tmp_path / "dados_convertido.json"
     assert str(output) == resultado
+    assert output_path == str(output)
     assert json.loads(output.read_text(encoding="utf-8")) == [
         {"nome": "Maria", "idade": "30"},
         {"nome": "João", "idade": "25"},
@@ -72,21 +75,23 @@ def test_image_to_pdf(tmp_path):
     img_path = tmp_path / "imagem.png"
     Image.new("RGB", (10, 10), "red").save(img_path)
 
-    sucesso, resultado = FileConverter.image_to_pdf(str(img_path))
+    sucesso, resultado, output_path = FileConverter.image_to_pdf(str(img_path))
     assert sucesso
 
     output = tmp_path / "imagem.pdf"
     assert str(output) == resultado
+    assert output_path == str(output)
     assert output.read_bytes().startswith(b"%PDF")
 
 
 def test_pdf_to_images(tmp_path):
     pdf = _make_pdf(tmp_path)
 
-    sucesso, resultado = FileConverter.pdf_to_images(str(pdf), "png")
+    sucesso, resultado, output_path = FileConverter.pdf_to_images(str(pdf), "png")
     assert sucesso
 
     output_folder = tmp_path / "doc_imagens"
+    assert output_path == str(output_folder)
     assert output_folder.exists()
     assert (output_folder / "doc_p1.png").exists()
 
@@ -94,21 +99,23 @@ def test_pdf_to_images(tmp_path):
 def test_pdf_to_svg(tmp_path):
     pdf = _make_pdf(tmp_path)
 
-    sucesso, resultado = FileConverter.pdf_to_svg(str(pdf))
+    sucesso, resultado, output_path = FileConverter.pdf_to_svg(str(pdf))
     assert sucesso
 
     output_folder = tmp_path / "doc_svg"
+    assert output_path == str(output_folder)
     assert (output_folder / "doc_p1.svg").exists()
 
 
 def test_pdf_to_markdown(tmp_path):
     pdf = _make_pdf(tmp_path)
 
-    sucesso, resultado = FileConverter.pdf_to_markdown(str(pdf))
+    sucesso, resultado, output_path = FileConverter.pdf_to_markdown(str(pdf))
     assert sucesso
 
     output = tmp_path / "doc.md"
     assert output.exists()
+    assert output_path == str(output)
     content = output.read_text(encoding="utf-8")
     assert "# doc" in content
     assert "Conteúdo teste" in content
@@ -124,11 +131,12 @@ def test_extract_images_from_pdf(tmp_path):
     doc.save(str(pdf_path))
     doc.close()
 
-    sucesso, resultado = FileConverter.extract_images_from_pdf(str(pdf_path))
+    sucesso, resultado, output_path = FileConverter.extract_images_from_pdf(str(pdf_path))
     assert sucesso
     assert resultado.startswith("1 fotos")
 
     output_folder = tmp_path / "com_foto_extraidas"
+    assert output_path == str(output_folder)
     assert len(list(output_folder.iterdir())) == 1
 
 
@@ -151,20 +159,22 @@ def test_ocr_via_api_success(tmp_path, monkeypatch):
 
     monkeypatch.setattr("core.converter.OCR_API_KEY", "chave-teste")
     with mock.patch("core.converter.requests.post", side_effect=fake_post):
-        sucesso, resultado = FileConverter.ocr_via_api(str(img_path))
+        sucesso, resultado, output_path = FileConverter.ocr_via_api(str(img_path))
 
     assert sucesso
     output = tmp_path / "texto_ocr.txt"
     assert str(output) in resultado
+    assert output_path == str(output)
     assert output.read_text(encoding="utf-8") == "Texto extraído"
 
 
 def test_ocr_via_api_sem_chave(tmp_path, monkeypatch):
     monkeypatch.setattr("core.converter.OCR_API_KEY", None)
 
-    sucesso, resultado = FileConverter.ocr_via_api(str(tmp_path / "x.png"))
+    sucesso, resultado, output_path = FileConverter.ocr_via_api(str(tmp_path / "x.png"))
     assert not sucesso
     assert "Chave OCR não configurada" in resultado
+    assert output_path is None
 
 
 def test_supported_targets_mapping():

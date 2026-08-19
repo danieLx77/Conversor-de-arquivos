@@ -1,6 +1,8 @@
 import os
 import csv
 import json
+import io
+import contextlib
 import img2pdf
 import fitz
 import requests
@@ -69,9 +71,9 @@ class FileConverter:
             with open(output_path, 'w', encoding='utf-8') as bin_file:
                 bin_file.write(binary_content)
 
-            return True, output_path
+            return True, output_path, output_path
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
 
     # --- CSV PARA JSON ---
     @staticmethod
@@ -90,9 +92,9 @@ class FileConverter:
             with open(output_path, 'w', encoding='utf-8') as json_file:
                 json_file.write(json.dumps(data, indent=4, ensure_ascii=False))
 
-            return True, output_path
+            return True, output_path, output_path
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
 
     # --- IMAGEM PARA PDF ---
     @staticmethod
@@ -102,13 +104,14 @@ class FileConverter:
             base_name = os.path.basename(input_path).split('.')[0]
             output_path = unique_output_path(folder, base_name, ".pdf")
 
-            pdf_bytes = img2pdf.convert(input_path)
+            with contextlib.redirect_stderr(io.StringIO()):
+                pdf_bytes = img2pdf.convert(input_path)
             with open(output_path, "wb") as file:
                 file.write(pdf_bytes)
 
-            return True, output_path
+            return True, output_path, output_path
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
 
     # --- IMAGEM PARA SVG (VETORIZAÇÃO REAL) ---
     @staticmethod
@@ -132,9 +135,9 @@ class FileConverter:
                 color_precision=6   # Equilíbrio entre qualidade e tamanho do arquivo
             )
 
-            return True, f"Vetorizado: {output_path}"
+            return True, f"Vetorizado: {output_path}", output_path
         except Exception as e:
-            return False, f"Erro na vetorização: {str(e)}"
+            return False, f"Erro na vetorização: {str(e)}", None
 
     # --- PDF PARA IMAGENS (PNG/JPEG) ---
     @staticmethod
@@ -156,9 +159,9 @@ class FileConverter:
                 pix.save(image_path)
                 pix = None
 
-            return True, f"Imagens em: {output_folder}"
+            return True, f"Imagens em: {output_folder}", output_folder
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         finally:
             if doc:
                 doc.close()
@@ -179,9 +182,9 @@ class FileConverter:
                 with open(svg_path, "w", encoding="utf-8") as f:
                     f.write(page.get_svg_image())
 
-            return True, f"SVGs em: {output_folder}"
+            return True, f"SVGs em: {output_folder}", output_folder
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         finally:
             if doc:
                 doc.close()
@@ -206,9 +209,9 @@ class FileConverter:
                     with open(image_path, "wb") as f:
                         f.write(base_image["image"])
                     count += 1
-            return True, f"{count} fotos em: {output_folder}"
+            return True, f"{count} fotos em: {output_folder}", output_folder
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         finally:
             if doc:
                 doc.close()
@@ -230,9 +233,9 @@ class FileConverter:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(content)
 
-            return True, f"Markdown salvo em: {output_path}"
+            return True, f"Markdown salvo em: {output_path}", output_path
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         finally:
             if doc:
                 doc.close()
@@ -242,7 +245,7 @@ class FileConverter:
     def ocr_via_api(input_path):
         try:
             if not OCR_API_KEY:
-                return False, "Chave OCR não configurada. Adicione OCR_SPACE_KEY no arquivo .env"
+                return False, "Chave OCR não configurada. Adicione OCR_SPACE_KEY no arquivo .env", None
 
             with open(input_path, 'rb') as f:
                 payload = {'apikey': OCR_API_KEY, 'language': 'por'}
@@ -258,7 +261,7 @@ class FileConverter:
 
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(parsed_text)
-                return True, f"Texto extraído: {output_path}"
-            return False, f"Erro API: {result.get('ErrorMessage')}"
+                return True, f"Texto extraído: {output_path}", output_path
+            return False, f"Erro API: {result.get('ErrorMessage')}", None
         except Exception as e:
-            return False, f"Falha: {str(e)}"
+            return False, f"Falha: {str(e)}", None
