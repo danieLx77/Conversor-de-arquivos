@@ -8,6 +8,7 @@ A arquitetura adota o princípio de camadas com baixo acoplamento entre interfac
 
 - Linguagem: Python 3.13
 - Interface gráfica: customtkinter 5.2.2
+- Arrastar e soltar de arquivos: tkinterdnd2 0.6.2
 - Processamento de PDF: PyMuPDF 1.27.2.2
 - Conversão de imagem para PDF: img2pdf 0.6.3
 - Vetorização de imagem para SVG: vtracer 0.6.15
