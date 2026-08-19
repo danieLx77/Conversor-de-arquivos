@@ -5,4 +5,5 @@ requests==2.33.1
 python-dotenv==1.2.2
 pillow==12.1.0
 vtracer==0.6.15
+tkinterdnd2==0.6.2
 pytest>=8.0
